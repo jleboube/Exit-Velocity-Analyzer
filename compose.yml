@@ -1,0 +1,9 @@
+
+services:
+  web:
+    build: .
+    container_name: exit-velocity-analyzer-app
+    ports:
+      # Expose the container's port 80 on the host's port 8080
+      - "6929:80"
+    restart: unless-stopped

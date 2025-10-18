@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baseball Exit Velocity Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Style for the custom file input button */
+        .custom-file-upload {
+            border: 2px solid #3b82f6;
+            display: inline-block;
+            padding: 8px 16px;
+            cursor: pointer;
+            background-color: #3b82f6;
+            color: white;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .custom-file-upload:hover {
+            background-color: #2563eb;
+        }
+        #video-upload {
+            display: none;
+        }
+        .step-active {
+            border-color: #3b82f6;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 flex flex-col items-center min-h-screen p-4 md:p-8">
+
+    <div class="w-full max-w-6xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-white tracking-tight">Baseball Exit Velocity Analyzer</h1>
+            <p class="text-blue-300 mt-2 text-lg">Estimate ball speed right off the bat.</p>
+        </header>
+
+        <!-- Main container -->
+        <div class="bg-gray-800 rounded-xl shadow-2xl p-6">
+
+            <!-- Initial Upload State -->
+            <div id="upload-section" class="text-center">
+                <h2 class="text-2xl font-semibold mb-2">Get Started</h2>
+                <p class="text-gray-400 mb-4 max-w-2xl mx-auto">For best results, use a high-frame-rate video filmed from a stable tripod directly beside the batter.</p>
+                <label for="video-upload" class="custom-file-upload">
+                    Upload Swing Video
+                </label>
+                <input type="file" id="video-upload" accept="video/*">
+            </div>
+
+            <!-- Main App Interface (Hidden initially) -->
+            <div id="app-interface" class="hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                    <!-- Video Player and Canvas -->
+                    <div class="lg:col-span-2 relative w-full rounded-lg overflow-hidden bg-black self-start">
+                        <video id="video-player" class="w-full h-auto block" controls></video>
+                        <canvas id="canvas" class="absolute top-0 left-0 pointer-events-none"></canvas>
+                        <!-- Custom message overlay -->
+                        <div id="message-overlay" class="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center text-center p-4 hidden pointer-events-none">
+                            <p id="message-text" class="text-2xl font-semibold text-white"></p>
+                        </div>
+                    </div>
+
+                    <!-- Controls and Results -->
+                    <div class="flex flex-col gap-4">
+                        <!-- Step 1: Calibration -->
+                        <div id="step1-card" class="bg-gray-700 p-4 rounded-lg border-2 border-gray-600 transition-all">
+                            <h3 class="text-lg font-semibold text-white mb-2">Step 1: Calibrate Distance</h3>
+                            <p class="text-sm text-gray-400 mb-3">Find a frame showing home plate. Click on the left and right corners of the plate to set the scale (17 inches).</p>
+
+                            <!-- Home Plate Diagram -->
+                            <div class="bg-gray-800 rounded p-3 mb-3">
+                                <div class="flex items-center justify-center mb-2">
+                                    <div class="relative mr-3">
+                                        <img src="baseball-home-plate.jpg" alt="Home Plate" class="w-24 h-24 object-contain">
+                                        <!-- SVG overlay for markers -->
+                                        <svg class="absolute top-0 left-0 w-24 h-24" viewBox="0 0 96 96">
+                                            <!-- Left corner marker (top-left of home plate) -->
+                                            <circle cx="18" cy="18" r="6" fill="#fbbf24" stroke="#000" stroke-width="1.5"/>
+                                            <text x="18" y="22" text-anchor="middle" fill="#000" font-size="10" font-weight="bold">L</text>
+                                            <!-- Right corner marker (top-right of home plate) -->
+                                            <circle cx="78" cy="18" r="6" fill="#fbbf24" stroke="#000" stroke-width="1.5"/>
+                                            <text x="78" y="22" text-anchor="middle" fill="#000" font-size="10" font-weight="bold">R</text>
+                                            <!-- Arrow showing 17" -->
+                                            <defs>
+                                                <marker id="arrowleft" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                                                    <polygon points="6,4 2,2 2,6" fill="#3b82f6"/>
+                                                </marker>
+                                                <marker id="arrowright" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                                                    <polygon points="2,4 6,2 6,6" fill="#3b82f6"/>
+                                                </marker>
+                                            </defs>
+                                            <line x1="18" y1="28" x2="78" y2="28" stroke="#3b82f6" stroke-width="2" marker-start="url(#arrowleft)" marker-end="url(#arrowright)"/>
+                                            <text x="48" y="40" text-anchor="middle" fill="#3b82f6" font-size="11" font-weight="bold">17"</text>
+                                        </svg>
+                                    </div>
+                                    <div class="text-xs text-gray-300">
+                                        <div class="mb-1"><span class="inline-block w-3 h-3 bg-yellow-400 rounded-full mr-1"></span>Click <strong>Left</strong> corner first</div>
+                                        <div><span class="inline-block w-3 h-3 bg-yellow-400 rounded-full mr-1"></span>Then click <strong>Right</strong> corner</div>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-center text-gray-400">Click the top-left and top-right corners</p>
+                            </div>
+
+                            <div class="flex items-center justify-between text-sm">
+                                <span>Point 1: <span id="cal-pt1-status" class="font-mono text-red-400">Not Set</span></span>
+                                <span>Point 2: <span id="cal-pt2-status" class="font-mono text-red-400">Not Set</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Mark Ball -->
+                        <div id="step2-card" class="bg-gray-700 p-4 rounded-lg border-2 border-gray-600 transition-all opacity-50">
+                            <h3 class="text-lg font-semibold text-white mb-2">Step 2: Mark Ball</h3>
+                            <p class="text-sm text-gray-400 mb-3">Use the frame controls. Click the ball just <strong class="text-blue-300">before</strong> bat impact, advance one frame, then click it just <strong class="text-blue-300">after</strong> impact.</p>
+                            <div class="flex items-center justify-between text-sm">
+                                <span>Before: <span id="ball-pt1-status" class="font-mono text-red-400">Not Set</span></span>
+                                <span>After: <span id="ball-pt2-status" class="font-mono text-red-400">Not Set</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Inputs -->
+                        <div id="step3-card" class="bg-gray-700 p-4 rounded-lg border-2 border-gray-600 transition-all opacity-50">
+                             <h3 class="text-lg font-semibold text-white mb-2">Step 3: Video Details</h3>
+                            <label for="fps-input" class="block text-sm text-gray-400 mb-2">Enter Video FPS (Frames Per Second)</label>
+                            <input type="number" id="fps-input" placeholder="e.g., 240" class="w-full bg-gray-800 text-white p-2 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        </div>
+                        
+                        <!-- Video Controls -->
+                        <div class="bg-gray-700 p-3 rounded-lg flex items-center justify-center gap-3">
+                            <button id="prev-frame-btn" class="px-3 py-2 bg-gray-600 rounded hover:bg-gray-500 transition">-1 Frame</button>
+                            <button id="play-pause-btn" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-500 transition font-semibold">Play</button>
+                            <button id="next-frame-btn" class="px-3 py-2 bg-gray-600 rounded hover:bg-gray-500 transition">+1 Frame</button>
+                        </div>
+                        
+                        <!-- Actions & Results -->
+                        <div class="mt-2">
+                             <button id="calculate-btn" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-500 transition disabled:bg-gray-500 disabled:cursor-not-allowed">Calculate Exit Velocity</button>
+                             <button id="reset-btn" class="w-full bg-red-600 text-white font-bold py-2 rounded-lg hover:bg-red-500 transition mt-3">Reset</button>
+
+                             <div id="results-section" class="mt-4 text-center hidden">
+                                <p class="text-gray-400">Estimated Exit Velocity:</p>
+                                <p id="result-text" class="text-5xl font-bold text-blue-300">-- MPH</p>
+                                <p class="text-xs text-gray-500 mt-2">This is an estimation. Accuracy depends on video quality and point selection.</p>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="text-center mt-8 text-gray-400 text-sm">
+            <div class="flex justify-center gap-6">
+                <a href="privacy.html" class="hover:text-blue-300 transition">Privacy Policy</a>
+                <span>•</span>
+                <a href="terms.html" class="hover:text-blue-300 transition">Terms and Conditions</a>
+            </div>
+            <p class="mt-3">© 2024 Baseball Exit Velocity Analyzer. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- Custom Modal -->
+    <div id="custom-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-50">
+        <div class="bg-gray-700 rounded-lg shadow-xl p-6 w-full max-w-sm mx-4">
+            <p id="modal-text" class="text-white text-lg mb-4">Are you sure?</p>
+            <div class="flex justify-end gap-3">
+                <button id="modal-cancel-btn" class="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500 transition">Cancel</button>
+                <button id="modal-confirm-btn" class="px-4 py-2 bg-red-600 rounded hover:bg-red-500 transition">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM Elements ---
+        const videoUpload = document.getElementById('video-upload');
+        const uploadSection = document.getElementById('upload-section');
+        const appInterface = document.getElementById('app-interface');
+        const videoPlayer = document.getElementById('video-player');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d'); // FIX: Changed '20d' to '2d'
+
+        const step1Card = document.getElementById('step1-card');
+        const step2Card = document.getElementById('step2-card');
+        const step3Card = document.getElementById('step3-card');
+
+        const calPt1Status = document.getElementById('cal-pt1-status');
+        const calPt2Status = document.getElementById('cal-pt2-status');
+        const ballPt1Status = document.getElementById('ball-pt1-status');
+        const ballPt2Status = document.getElementById('ball-pt2-status');
+        
+        const fpsInput = document.getElementById('fps-input');
+        const calculateBtn = document.getElementById('calculate-btn');
+        const resultsSection = document.getElementById('results-section');
+        const resultText = document.getElementById('result-text');
+        const resetBtn = document.getElementById('reset-btn');
+
+        const prevFrameBtn = document.getElementById('prev-frame-btn');
+        const nextFrameBtn = document.getElementById('next-frame-btn');
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        
+        const messageOverlay = document.getElementById('message-overlay');
+        const messageText = document.getElementById('message-text');
+
+        // --- Modal Elements ---
+        const customModal = document.getElementById('custom-modal');
+        const modalText = document.getElementById('modal-text');
+        const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
+        let confirmCallback = null;
+
+        // --- App State ---
+        let state = 'IDLE'; // IDLE, CALIBRATE_1, CALIBRATE_2, MARK_BALL_1, MARK_BALL_2, DONE
+        let points = {
+            cal1: null,
+            cal2: null,
+            ball1: null,
+            ball2: null,
+        };
+        let feetPerPixel = 0;
+        const HOME_PLATE_WIDTH_FEET = 17 / 12; // 17 inches
+        let messageTimeout;
+
+        // --- Functions ---
+        
+        function showMessage(msg, duration = 0) {
+            clearTimeout(messageTimeout);
+            messageText.textContent = msg;
+            messageOverlay.classList.remove('hidden');
+            if (duration > 0) {
+                messageTimeout = setTimeout(() => {
+                    hideMessage();
+                }, duration);
+            }
+        }
+
+        function hideMessage() {
+            messageOverlay.classList.add('hidden');
+        }
+
+        function showModal(text, callback) {
+            modalText.textContent = text;
+            confirmCallback = callback;
+            customModal.classList.remove('hidden');
+        }
+
+        function hideModal() {
+            customModal.classList.add('hidden');
+            confirmCallback = null;
+        }
+
+        function updateUIState() {
+            // Reset styles
+            [step1Card, step2Card, step3Card].forEach(card => {
+                card.classList.remove('step-active');
+                card.classList.add('opacity-50');
+            });
+            calculateBtn.disabled = true;
+
+            switch (state) {
+                case 'IDLE':
+                    step1Card.classList.add('step-active');
+                    step1Card.classList.remove('opacity-50');
+                    showMessage('Find home plate and click its left corner.', 3000);
+                    break;
+                case 'CALIBRATE_1':
+                    step1Card.classList.add('step-active');
+                    step1Card.classList.remove('opacity-50');
+                    showMessage('Now click the right corner of home plate.', 3000);
+                    break;
+                case 'CALIBRATE_2':
+                    step2Card.classList.add('step-active');
+                    step2Card.classList.remove('opacity-50');
+                    showMessage('Find frame BEFORE impact. Click the ball.', 3000);
+                    break;
+                case 'MARK_BALL_1':
+                    step2Card.classList.add('step-active');
+                    step2Card.classList.remove('opacity-50');
+                    showMessage('Advance 1 frame. Click the ball AFTER impact.', 3000);
+                    break;
+                case 'MARK_BALL_2':
+                    step3Card.classList.add('step-active');
+                    step3Card.classList.remove('opacity-50');
+                    hideMessage();
+                    break;
+                case 'DONE':
+                     step3Card.classList.remove('opacity-50');
+                     hideMessage();
+                     if(fpsInput.value){
+                        calculateBtn.disabled = false;
+                     }
+                     break;
+            }
+            // Update status text
+            calPt1Status.textContent = points.cal1 ? 'Set' : 'Not Set';
+            calPt1Status.className = points.cal1 ? 'font-mono text-green-400' : 'font-mono text-red-400';
+            calPt2Status.textContent = points.cal2 ? 'Set' : 'Not Set';
+            calPt2Status.className = points.cal2 ? 'font-mono text-green-400' : 'font-mono text-red-400';
+            ballPt1Status.textContent = points.ball1 ? 'Set' : 'Not Set';
+            ballPt1Status.className = points.ball1 ? 'font-mono text-green-400' : 'font-mono text-red-400';
+            ballPt2Status.textContent = points.ball2 ? 'Set' : 'Not Set';
+            ballPt2Status.className = points.ball2 ? 'font-mono text-green-400' : 'font-mono text-red-400';
+        }
+
+        function resizeCanvas() {
+            if (!videoPlayer || !canvas) return;
+
+            // Get the video's intrinsic dimensions
+            const videoWidth = videoPlayer.videoWidth;
+            const videoHeight = videoPlayer.videoHeight;
+
+            if (!videoWidth || !videoHeight) return;
+
+            // Get the video element's display dimensions
+            const rect = videoPlayer.getBoundingClientRect();
+
+            // Calculate the aspect ratios
+            const videoAspect = videoWidth / videoHeight;
+            const containerAspect = rect.width / rect.height;
+
+            let displayWidth, displayHeight, offsetX = 0, offsetY = 0;
+
+            // Determine actual video display size (accounting for letterboxing)
+            if (containerAspect > videoAspect) {
+                // Video is letterboxed horizontally (black bars on sides)
+                displayHeight = rect.height;
+                displayWidth = displayHeight * videoAspect;
+                offsetX = (rect.width - displayWidth) / 2;
+            } else {
+                // Video is letterboxed vertically (black bars on top/bottom)
+                displayWidth = rect.width;
+                displayHeight = displayWidth / videoAspect;
+                offsetY = (rect.height - displayHeight) / 2;
+            }
+
+            // Set canvas drawing buffer to match display size
+            canvas.width = displayWidth;
+            canvas.height = displayHeight;
+
+            // Position and size canvas to match video display area
+            canvas.style.width = displayWidth + 'px';
+            canvas.style.height = displayHeight + 'px';
+            canvas.style.left = offsetX + 'px';
+            canvas.style.top = offsetY + 'px';
+
+            drawPoints();
+        }
+
+        function drawPoint(point, color, label) {
+            if (!point || !ctx) return;
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 14px Inter';
+            ctx.fillText(label, point.x + 8, point.y - 8);
+        }
+
+        function drawLine(p1, p2, color){
+            if(!p1 || !p2 || !ctx) return;
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function drawPoints() {
+            if (!ctx || !canvas) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawLine(points.cal1, points.cal2, 'rgba(255, 255, 0, 0.7)');
+            drawLine(points.ball1, points.ball2, 'rgba(59, 130, 246, 0.9)');
+            
+            drawPoint(points.cal1, 'yellow', 'C1');
+            drawPoint(points.cal2, 'yellow', 'C2');
+            drawPoint(points.ball1, '#3b82f6', 'B1');
+            drawPoint(points.ball2, '#3b82f6', 'B2');
+        }
+        
+        function handleCanvasClick(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            switch (state) {
+                case 'IDLE':
+                    points.cal1 = { x, y };
+                    state = 'CALIBRATE_1';
+                    break;
+                case 'CALIBRATE_1':
+                    points.cal2 = { x, y };
+                    state = 'CALIBRATE_2';
+                    const pixelDist = Math.sqrt(Math.pow(points.cal2.x - points.cal1.x, 2) + Math.pow(points.cal2.y - points.cal1.y, 2));
+                    feetPerPixel = HOME_PLATE_WIDTH_FEET / pixelDist;
+                    break;
+                case 'CALIBRATE_2':
+                    points.ball1 = { x, y };
+                    state = 'MARK_BALL_1';
+                    break;
+                case 'MARK_BALL_1':
+                    points.ball2 = { x, y };
+                    state = 'MARK_BALL_2';
+                    break;
+                 case 'MARK_BALL_2':
+                     state = 'DONE';
+                     break;
+            }
+            updateUIState();
+            drawPoints();
+        }
+
+        function calculateVelocity() {
+            if (!points.ball1 || !points.ball2 || !feetPerPixel) {
+                showMessage("Please complete all steps before calculating.", 3000);
+                return;
+            }
+            const fps = parseFloat(fpsInput.value);
+            if (!fps || fps <= 0) {
+                showMessage("Please enter a valid FPS value.", 3000);
+                return;
+            }
+
+            const timeDelta = 1 / fps; // Time between two consecutive frames
+            const ballPixelDist = Math.sqrt(Math.pow(points.ball2.x - points.ball1.x, 2) + Math.pow(points.ball2.y - points.ball1.y, 2));
+            const ballFeetDist = ballPixelDist * feetPerPixel;
+            
+            const velocityFeetPerSecond = ballFeetDist / timeDelta;
+            const velocityMPH = velocityFeetPerSecond * 3600 / 5280;
+
+            resultText.textContent = `${velocityMPH.toFixed(1)} MPH`;
+            resultsSection.classList.remove('hidden');
+        }
+
+        function resetApp() {
+            state = 'IDLE';
+            points = { cal1: null, cal2: null, ball1: null, ball2: null };
+            feetPerPixel = 0;
+            fpsInput.value = '';
+            resultsSection.classList.add('hidden');
+            resultText.textContent = '-- MPH';
+            updateUIState();
+            drawPoints();
+        }
+        
+        function stepFrame(direction) {
+            const fps = parseFloat(fpsInput.value) || 30; // Default to 30 if not set
+            const frameTime = 1 / fps;
+            videoPlayer.currentTime += frameTime * direction;
+        }
+
+        // --- Event Listeners ---
+        videoUpload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const fileURL = URL.createObjectURL(file);
+                videoPlayer.src = fileURL;
+                uploadSection.classList.add('hidden');
+                appInterface.classList.remove('hidden');
+                videoPlayer.addEventListener('loadedmetadata', () => {
+                    resizeCanvas();
+                    resetApp();
+                });
+            }
+        });
+        
+        fpsInput.addEventListener('input', () => {
+            if (state === 'DONE' && fpsInput.value) {
+                calculateBtn.disabled = false;
+            } else if (state === 'MARK_BALL_2' && fpsInput.value) {
+                 calculateBtn.disabled = false;
+                 state = 'DONE';
+                 updateUIState();
+            } else {
+                 calculateBtn.disabled = true;
+            }
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+        canvas.addEventListener('click', (e) => {
+            // Re-enable pointer events for click, then disable
+            canvas.style.pointerEvents = 'auto';
+            handleCanvasClick(e);
+            canvas.style.pointerEvents = 'none';
+        });
+
+        // Use mousedown to re-enable canvas clicks since video controls can steal focus
+        videoPlayer.addEventListener('mousedown', () => {
+             canvas.style.pointerEvents = 'auto';
+        });
+
+        calculateBtn.addEventListener('click', calculateVelocity);
+        
+        resetBtn.addEventListener('click', () => {
+            showModal("Are you sure you want to reset all points and calculations?", resetApp);
+        });
+        
+        modalConfirmBtn.addEventListener('click', () => {
+            if (confirmCallback) {
+                confirmCallback();
+            }
+            hideModal();
+        });
+
+        modalCancelBtn.addEventListener('click', hideModal);
+        
+        playPauseBtn.addEventListener('click', () => {
+            if(videoPlayer.paused){
+                videoPlayer.play();
+                playPauseBtn.textContent = 'Pause';
+            } else {
+                videoPlayer.pause();
+                playPauseBtn.textContent = 'Play';
+            }
+        });
+        
+        videoPlayer.onpause = () => playPauseBtn.textContent = 'Play';
+        videoPlayer.onplay = () => playPauseBtn.textContent = 'Pause';
+
+        prevFrameBtn.addEventListener('click', () => stepFrame(-1));
+        nextFrameBtn.addEventListener('click', () => stepFrame(1));
+    });
+    </script>
+</body>
+</html>
+
