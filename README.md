@@ -4,6 +4,12 @@ A web-based tool for estimating baseball exit velocity from high-frame-rate swin
 
 > **New User?** Start with [QUICKSTART.md](./QUICKSTART.md) for a 2-minute setup guide!
 
+## Screenshots
+
+![Alt text](screenshots/analysis.png "Analyze video")
+
+![Alt text](screenshots/saved_results.png "Results saved for authenticated users")
+
 ## Features
 
 ### Core Features

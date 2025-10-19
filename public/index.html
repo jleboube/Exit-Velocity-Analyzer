@@ -92,13 +92,23 @@
             <div id="app-interface" class="hidden">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                    <!-- Video Player and Canvas -->
-                    <div class="lg:col-span-2 relative w-full rounded-lg overflow-hidden bg-black self-start">
-                        <video id="video-player" class="w-full h-auto block" controls></video>
-                        <canvas id="canvas" class="absolute top-0 left-0 pointer-events-none"></canvas>
-                        <!-- Custom message overlay -->
-                        <div id="message-overlay" class="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center text-center p-4 hidden pointer-events-none">
-                            <p id="message-text" class="text-2xl font-semibold text-white"></p>
+                    <!-- Video Player, Canvas, and Controls -->
+                    <div class="lg:col-span-2 flex flex-col gap-4">
+                        <!-- Video Player and Canvas -->
+                        <div class="relative w-full rounded-lg overflow-hidden bg-black">
+                            <video id="video-player" class="w-full h-auto block" controls></video>
+                            <canvas id="canvas" class="absolute top-0 left-0 pointer-events-none"></canvas>
+                            <!-- Custom message overlay -->
+                            <div id="message-overlay" class="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center text-center p-4 hidden pointer-events-none">
+                                <p id="message-text" class="text-2xl font-semibold text-white"></p>
+                            </div>
+                        </div>
+
+                        <!-- Video Controls -->
+                        <div class="bg-gray-700 p-3 rounded-lg flex items-center justify-center gap-3">
+                            <button id="prev-frame-btn" class="px-3 py-2 bg-gray-600 rounded hover:bg-gray-500 transition">-1 Frame</button>
+                            <button id="play-pause-btn" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-500 transition font-semibold">Play</button>
+                            <button id="next-frame-btn" class="px-3 py-2 bg-gray-600 rounded hover:bg-gray-500 transition">+1 Frame</button>
                         </div>
                     </div>
 
@@ -165,14 +175,7 @@
                             <label for="fps-input" class="block text-sm text-gray-400 mb-2">Enter Video FPS (Frames Per Second)</label>
                             <input type="number" id="fps-input" placeholder="e.g., 240" class="w-full bg-gray-800 text-white p-2 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none">
                         </div>
-                        
-                        <!-- Video Controls -->
-                        <div class="bg-gray-700 p-3 rounded-lg flex items-center justify-center gap-3">
-                            <button id="prev-frame-btn" class="px-3 py-2 bg-gray-600 rounded hover:bg-gray-500 transition">-1 Frame</button>
-                            <button id="play-pause-btn" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-500 transition font-semibold">Play</button>
-                            <button id="next-frame-btn" class="px-3 py-2 bg-gray-600 rounded hover:bg-gray-500 transition">+1 Frame</button>
-                        </div>
-                        
+
                         <!-- Actions & Results -->
                         <div class="mt-2">
                              <button id="calculate-btn" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-500 transition disabled:bg-gray-500 disabled:cursor-not-allowed">Calculate Exit Velocity</button>
