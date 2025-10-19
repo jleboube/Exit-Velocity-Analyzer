@@ -1,9 +1,32 @@
-
 services:
   web:
     build: .
     container_name: exit-velocity-analyzer-app
     ports:
-      # Expose the container's port 80 on the host's port 8080
-      - "6929:80"
+      # Map host port to container port (both read from .env PORT variable)
+      - "${PORT:-6923}:${PORT:-6923}"
+    environment:
+      # Server Configuration
+      - PORT=${PORT:-6923}
+      - NODE_ENV=${NODE_ENV:-production}
+      - SESSION_SECRET=${SESSION_SECRET:-default-secret-change-in-production}
+
+      # Public URL (for Cloudflare Tunnel or reverse proxy)
+      - PUBLIC_URL=${PUBLIC_URL:-http://localhost:${PORT:-6923}}
+
+      # Google OAuth (Optional - leave empty to run without OAuth)
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL:-}
+
+      # Database
+      - DATABASE_PATH=/app/data/analytics.db
+    volumes:
+      # Persist database and sessions outside container
+      - app-data:/app/data
     restart: unless-stopped
+
+volumes:
+  # Named volume for persistent data (database and sessions)
+  app-data:
+    driver: local

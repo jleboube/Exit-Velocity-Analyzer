@@ -1,21 +1,26 @@
-# Use the official lightweight Nginx image
-FROM nginx:alpine
+# Use Node.js LTS version
+FROM node:18-alpine
 
-# Remove the default nginx website
-RUN rm -rf /usr/share/nginx/html/*
+# Set working directory
+WORKDIR /app
 
-# Copy your application's HTML file into the container
-# We are renaming it to index.html so Nginx serves it by default
-COPY exit-velocity-analyzer.html /usr/share/nginx/html/index.html
-# Also copy with original name for direct access
-COPY exit-velocity-analyzer.html /usr/share/nginx/html/exit-velocity-analyzer.html
+# Copy package files
+COPY package*.json ./
 
-# Copy the home plate image
-COPY baseball-home-plate.jpg /usr/share/nginx/html/baseball-home-plate.jpg
+# Install dependencies
+RUN npm install --production
 
-# Copy privacy and terms pages
-COPY privacy.html /usr/share/nginx/html/privacy.html
-COPY terms.html /usr/share/nginx/html/terms.html
+# Copy application files
+COPY . .
 
-# Expose port 80 to the Docker host
-EXPOSE 80
+# Create data directory for database
+RUN mkdir -p /app/data
+
+# Initialize database
+RUN node scripts/init-db.js
+
+# Note: Port is configured via environment variables in compose.yml or .env
+# Default port 6923 can be changed by setting PORT in your .env file
+
+# Start the application
+CMD ["node", "server.js"]
